@@ -3,21 +3,18 @@
 A custom TV channel builder for [Tubi](https://tubitv.com). Add shows to your personal channel, generate a randomized episode queue, and watch on Tubi with automatic episode-to-episode advancement.
 
 ```
-tubishift-v2/
-├── tubishift2/               ← Python server + web UI
-│   ├── server.py
-│   ├── tubi_scraper.py
-│   ├── tray.py
-│   ├── build.py
-│   ├── requirements.txt
-│   └── static/
-│       └── index.html
+tubishift/               ← Python server + web UI
+├── server.py
+├── tubi_scraper.py
+├── tray.py
+├── build.py
+├── requirements.txt
+└── static/
+    └── index.html
 └── tubishift-extension/      ← Chrome extension
     ├── manifest.json
-    ├── block.js
     ├── content.js
     ├── background.js
-    ├── detect.js
     ├── popup.html
     └── popup.js
 ```
@@ -72,8 +69,6 @@ From the **Get Extension** button in the app header, or manually:
 2. Enable **Developer mode** (toggle in the top-right)
 3. Click **Load unpacked** and select the `tubishift-extension/` folder
 4. The 📺 TubiShift icon will appear in your toolbar
-
-> The **Get Extension** button disappears automatically once the extension is detected as installed.
 
 ---
 
@@ -189,19 +184,6 @@ SQLite with WAL mode. Three tables:
 | File | Purpose |
 |------|---------|
 | `manifest.json` | MV3 manifest — permissions for tubitv.com and localhost:5000 |
-| `block.js` | Runs at `document_start` — wraps `history.pushState` before React Router initializes, blocking Tubi's autoplay navigation while TubiShift is advancing |
 | `content.js` | Runs at `document_idle` on Tubi video pages — watches `currentTime`, advances at the credits timestamp, suppresses Tubi's autoplay overlay via CSS |
 | `background.js` | Service worker — proxies requests from content scripts to the local server (required because content scripts can't fetch `http://localhost` from `https` pages) |
-| `detect.js` | Runs at `document_start` on `localhost:5000` — sets `window.__tubiShiftExtensionInstalled = true` so the UI can hide the Get Extension button |
 | `popup.html/js` | Toolbar popup showing queue status and an on/off toggle |
-
----
-
-## Development Notes
-
-- The server and extension communicate over `http://localhost:5000` — no external services are involved beyond Tubi's own CDN
-- The extension's `background.js` acts as a proxy because Chrome blocks mixed-content requests (https → http) from content scripts
-- Tubi's autoplay is suppressed via three layered strategies: CSS hiding the overlay component (class `YB49l` — confirmed from Tubi's compiled source), a `history.pushState` intercept in `block.js` that runs before React Router initializes, and a pause event dispatch that freezes their countdown timer's `setInterval`
-- Queue building interleaves shows in rotation rather than playing all episodes of one show consecutively — `eps_per_show` controls how many episodes of each show appear before rotating to the next
-- `credits_secs` is stored per episode and used by the extension to trigger advancement slightly before Tubi's own 5-second countdown starts
-- When running as `.exe`, PyInstaller extracts files to a temp `_MEIPASS` directory — all resource paths use `resource_path()` in `tray.py` to resolve correctly in both dev and bundled modes. User data paths always use `data_path()` which points to AppData regardless of where the `.exe` lives
