@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 280px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0a0a0f;
+    color: #e8e8f0;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #ff5a1f, #ff9a3c);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+  .logo span { opacity: .8; font-weight: 400; font-size: 11px; display: block; }
+
+  .body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #12121a;
+    border-radius: 8px;
+    border: 1px solid #2a2a3a;
+    font-size: 12px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot.green  { background: #2ecc71; box-shadow: 0 0 6px #2ecc71; }
+  .dot.red    { background: #e74c3c; }
+  .dot.yellow { background: #f39c12; }
+
+  .now-playing {
+    background: #12121a;
+    border: 1px solid #2a2a3a;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: none;
+  }
+  .np-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #6b6b88; margin-bottom: 4px; }
+  .np-show  { font-size: 13px; font-weight: 600; }
+  .np-ep    { font-size: 11px; color: #6b6b88; margin-top: 2px; }
+
+  .queue-info {
+    background: #12121a;
+    border: 1px solid #2a2a3a;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    display: none;
+  }
+  .queue-info .row { display: flex; justify-content: space-between; margin-bottom: 3px; color: #6b6b88; }
+  .queue-info .row span { color: #e8e8f0; font-weight: 600; }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .toggle-label { font-size: 12px; color: #6b6b88; }
+
+  /* Toggle switch */
+  .toggle { position: relative; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0;
+    background: #2a2a3a; border-radius: 22px; cursor: pointer;
+    transition: .2s;
+  }
+  .slider:before {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    left: 3px; top: 3px;
+    background: #6b6b88; border-radius: 50%;
+    transition: .2s;
+  }
+  input:checked + .slider { background: #ff5a1f; }
+  input:checked + .slider:before { transform: translateX(18px); background: white; }
+
+  .btn {
+    width: 100%;
+    padding: 9px;
+    background: #ff5a1f;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .btn:hover { background: #ff9a3c; }
+  .btn.ghost {
+    background: transparent;
+    border: 1px solid #2a2a3a;
+    color: #e8e8f0;
+  }
+  .btn.ghost:hover { border-color: #ff5a1f; background: #12121a; }
+
+  .offline-msg { font-size: 12px; color: #6b6b88; text-align: center; line-height: 1.5; }
+  .offline-msg a { color: #ff5a1f; text-decoration: none; }
+
+  .divider { height: 1px; background: #2a2a3a; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="font-size:22px;">📺</div>
+  <div class="logo">TUBISHIFT <span>Channel Controller</span></div>
+</div>
+
+<div class="body">
+
+  <!-- Server offline state -->
+  <div id="offlineState">
+    <p class="offline-msg">
+      TubiShift server is offline.<br>
+      Run <code style="color:#ff9a3c">python server.py</code> first,<br>
+      then <a href="#" id="retryBtn">retry</a>.
+    </p>
+  </div>
+
+  <!-- Server online state -->
+  <div id="onlineState" style="display:none; flex-direction:column; gap:12px;">
+
+    <div class="status-row">
+      <div class="dot" id="activeDot"></div>
+      <div id="activeLabel" style="flex:1;"></div>
+      <label class="toggle">
+        <input type="checkbox" id="activeToggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="now-playing" id="nowPlayingBox">
+      <div class="np-label">▶ Now in Queue</div>
+      <div class="np-show" id="npShow"></div>
+      <div class="np-ep" id="npEp"></div>
+    </div>
+
+    <div class="queue-info" id="queueInfoBox">
+      <div class="row">Queue position <span id="queuePos">—</span></div>
+      <div class="row">Remaining <span id="queueRemaining">—</span></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <button class="btn ghost" id="openAppBtn">Open TubiShift App ↗</button>
+
+  </div>
+
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

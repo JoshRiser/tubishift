@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TUBISHIFT</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a26;
+    --accent: #ff5a1f; --accent2: #ff9a3c;
+    --text: #e8e8f0; --muted: #6b6b88; --border: #2a2a3a;
+    --green: #2ecc71; --red: #e74c3c; --yellow: #f39c12;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events: none; z-index: 9999; opacity: 0.4; }
+
+  header { display: flex; align-items: center; gap: 16px; padding: 20px 32px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.92); backdrop-filter: blur(12px); z-index: 100; }
+  .logo { font-family: 'Space Mono', monospace; font-size: 20px; font-weight: 700; }
+  .logo span { color: var(--accent); }
+  .logo-tag { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-left: 4px; }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+  .status-chip { display: flex; align-items: center; gap: 6px; font-family: 'Space Mono', monospace; font-size: 10px; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface2); cursor: pointer; transition: border-color 0.2s; }
+  .status-chip:hover { border-color: var(--accent); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+  .dot.on { background: var(--green); animation: pulse 2s infinite; }
+  .dot.warn { background: var(--yellow); }
+  .dot.off { background: var(--red); }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:.6} }
+
+  .main { display: grid; grid-template-columns: 380px 1fr; height: calc(100vh - 65px); }
+
+  .left-panel { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .panel-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); }
+  .panel-title { font-family: 'Space Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 12px; }
+  .search-bar { display: flex; gap: 8px; }
+  .search-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px 14px; outline: none; transition: border-color 0.2s; }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+
+  .btn { background: var(--accent); color: white; border: none; border-radius: 8px; padding: 10px 16px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .btn:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { background: var(--surface2); border-color: var(--accent); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+  .btn-green { background: var(--green); }
+  .btn-green:hover { background: #27ae60; }
+
+  .results-list { flex: 1; overflow-y: auto; padding: 12px; }
+  .results-list::-webkit-scrollbar { width: 4px; }
+  .results-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .result-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid transparent; margin-bottom: 4px; transition: all 0.15s; }
+  .result-item:hover { background: var(--surface2); border-color: var(--border); }
+  .result-item.added { background: rgba(46,204,113,0.06); border-color: rgba(46,204,113,0.2); }
+  .thumb { width: 64px; height: 40px; border-radius: 6px; object-fit: cover; background: var(--surface2); flex-shrink: 0; }
+  .thumb-placeholder { width: 64px; height: 40px; border-radius: 6px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .result-info { flex: 1; min-width: 0; }
+  .result-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+  .result-meta { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'Space Mono', monospace; }
+  .added-badge { font-size: 10px; background: rgba(46,204,113,0.15); color: var(--green); padding: 2px 6px; border-radius: 4px; font-family: 'Space Mono', monospace; white-space: nowrap; }
+
+  .status-msg { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 20px; line-height: 1.6; }
+  .loading-dots span { display: inline-block; animation: dot-pulse 1.4s infinite; font-size: 20px; color: var(--accent); }
+  .loading-dots span:nth-child(2) { animation-delay: .2s; }
+  .loading-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes dot-pulse { 0%,80%,100%{opacity:.2;transform:scale(.8)} 40%{opacity:1;transform:scale(1.1)} }
+
+  .right-panel { display: flex; flex-direction: column; overflow: hidden; }
+  .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 24px; }
+  .tab { font-family: 'Space Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); padding: 16px 0; margin-right: 28px; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.15s; }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-content { flex: 1; overflow-y: auto; padding: 24px; }
+  .tab-content::-webkit-scrollbar { width: 4px; }
+  .tab-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .channel-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; }
+  .channel-name-input { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; background: transparent; border: none; color: var(--text); outline: none; border-bottom: 2px solid var(--border); padding-bottom: 4px; transition: border-color 0.2s; min-width: 200px; }
+  .channel-name-input:focus { border-bottom-color: var(--accent); }
+  .channel-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  .shows-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
+  .show-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; position: relative; transition: all 0.2s; }
+  .show-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,90,31,0.12); }
+  .show-card-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--surface2); }
+  .show-card-img-placeholder { width: 100%; aspect-ratio: 16/9; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 32px; }
+  .show-card-body { padding: 10px 12px; }
+  .show-card-title { font-size: 13px; font-weight: 600; line-height: 1.3; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .show-card-meta { font-size: 10px; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .show-remove { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; background: rgba(231,76,60,0.85); border: none; color: white; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s; }
+  .show-card:hover .show-remove { opacity: 1; }
+
+  .empty-channel { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: .5; }
+  .empty-title { font-family: 'Space Mono', monospace; font-size: 14px; margin-bottom: 8px; color: var(--text); }
+
+  .info-box { background: rgba(255,90,31,0.06); border: 1px solid rgba(255,90,31,0.2); border-radius: 10px; padding: 14px 18px; font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
+  .info-box strong { color: var(--text); }
+  .warn-box { background: rgba(243,156,18,0.06); border: 1px solid rgba(243,156,18,0.25); border-radius: 10px; padding: 14px 18px; font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
+  .warn-box strong { color: var(--yellow); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 3px 8px; border-radius: 20px; font-family: 'Space Mono', monospace; }
+  .pill-orange { background: rgba(255,90,31,0.12); color: var(--accent); border: 1px solid rgba(255,90,31,0.2); }
+  .pill-green { background: rgba(46,204,113,0.1); color: var(--green); border: 1px solid rgba(46,204,113,0.2); }
+
+  /* PLAYER */
+  .player-area { display: flex; flex-direction: column; gap: 20px; }
+  .player-frame { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; aspect-ratio: 16/9; position: relative; display: flex; align-items: center; justify-content: center; max-height: 420px; }
+  .player-placeholder { text-align: center; padding: 40px; }
+  .player-placeholder .big-icon { font-size: 64px; opacity: .3; margin-bottom: 16px; }
+  .now-playing-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; }
+  .now-playing-label { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); flex-shrink: 0; }
+  .now-playing-info { flex: 1; min-width: 0; }
+  .now-playing-show { font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .now-playing-episode { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .player-controls { display: flex; gap: 8px; }
+  .episode-queue { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .queue-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; justify-content: space-between; }
+  .queue-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border); transition: background 0.1s; cursor: pointer; }
+  .queue-item:last-child { border-bottom: none; }
+  .queue-item:hover { background: var(--surface2); }
+  .queue-item.active { background: rgba(255,90,31,0.08); border-left: 3px solid var(--accent); }
+  .queue-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); width: 20px; flex-shrink: 0; }
+  .queue-item.active .queue-num { color: var(--accent); }
+  .queue-info { flex: 1; min-width: 0; }
+  .queue-ep-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .queue-ep-show { font-size: 11px; color: var(--muted); }
+  .queue-ep-duration { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); }
+  .tubi-open-btn { display: inline-flex; align-items: center; gap: 6px; background: #fa4308; color: white; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; transition: all 0.15s; }
+  .tubi-open-btn:hover { background: #ff5a1f; transform: translateY(-1px); }
+
+  /* AUTH MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; max-width: 560px; width: 90%; position: relative; }
+  .modal-title { font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+  .steps { counter-reset: step; display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+  .step { display: flex; gap: 12px; align-items: flex-start; }
+  .step-num { background: var(--accent); color: white; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step-text { font-size: 13px; line-height: 1.5; }
+  .step-text code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent2); }
+  .cookie-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Space Mono', monospace; font-size: 11px; padding: 12px; outline: none; resize: vertical; min-height: 80px; transition: border-color 0.2s; margin-bottom: 12px; }
+  .cookie-input:focus { border-color: var(--accent); }
+  .cookie-input::placeholder { color: var(--muted); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
+  .modal-close:hover { color: var(--text); }
+
+  .error-msg { background: rgba(231,76,60,0.08); border: 1px solid rgba(231,76,60,0.2); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #e74c3c; margin-bottom: 12px; }
+  .success-msg { background: rgba(46,204,113,0.08); border: 1px solid rgba(46,204,113,0.2); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--green); margin-bottom: 12px; }
+  .modal-icon { font-size: 48px; margin-bottom: 16px; }
+  .ext-step { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .ext-step:last-child { border-bottom: none; }
+  .ext-step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: white; font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .ext-step-body { flex: 1; font-size: 13px; line-height: 1.6; }
+  .ext-step-body strong { color: var(--text); }
+  .ext-step-body code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent2); }
+  .download-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: white; border: none; border-radius: 10px; padding: 12px 24px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; text-decoration: none; margin-top: 4px; }
+  .download-btn:hover { background: var(--accent2); transform: translateY(-1px); }
+  .resumed-banner { background: rgba(46,204,113,0.08); border: 1px solid rgba(46,204,113,0.25); border-radius: 10px; padding: 12px 16px; font-size: 13px; color: var(--green); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+</style>
+</head>
+<body>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal" style="display:none;">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAuthModal()">✕</button>
+    <div class="modal-title">🔐 Tubi Authentication</div>
+    <div class="modal-sub">Tubi requires two cookies from your browser. This is a one-time setup — they are saved locally on your computer.</div>
+
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text">Open <strong>Chrome</strong> or <strong>Firefox</strong> and go to <a href="https://tubitv.com" target="_blank" style="color:var(--accent)">tubitv.com</a>. Log in or browse as guest.</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">Press <code>F12</code> → <strong>Application</strong> tab (Chrome) or <strong>Storage</strong> tab (Firefox) → <strong>Cookies → https://tubitv.com</strong>.</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Find the cookie named <code>at</code>, double-click its <strong>Value</strong> column to select the whole value, then paste it below.</div></div>
+    </div>
+
+    <div id="authMsg" style="display:none;"></div>
+
+    <div style="margin-bottom:14px;">
+      <label style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;">
+        at <span style="color:var(--accent);">*</span>
+        <span style="color:var(--muted);font-size:9px;margin-left:6px;text-transform:none;letter-spacing:0;">— the only cookie you need</span>
+      </label>
+      <input class="cookie-input" id="cookieAt" type="text"
+        style="min-height:unset;height:40px;resize:none;font-size:12px;width:100%;"
+        placeholder="eyJhbGciOiJSUzI1..." autocomplete="off" spellcheck="false" />
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeAuthModal()">Cancel</button>
+      <button class="btn btn-green btn-sm" onclick="saveCookies()">Save Cookies</button>
+    </div>
+  </div>
+</div>
+
+<!-- NO SHOWS MODAL -->
+<div class="modal-overlay" id="noShowsModal" style="display:none;">
+  <div class="modal" style="max-width:400px;text-align:center;">
+    <button class="modal-close" onclick="closeModal('noShowsModal')">✕</button>
+    <div class="modal-icon">📺</div>
+    <div class="modal-title" style="margin-bottom:10px;">No Shows Added</div>
+    <div class="modal-sub">Search for TV series on the left and add at least one show before launching your channel.</div>
+    <div class="modal-actions" style="justify-content:center;margin-top:8px;">
+      <button class="btn btn-sm" onclick="closeModal('noShowsModal');switchTab('channel')">← Go Add Shows</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXTENSION MODAL -->
+<div class="modal-overlay" id="extensionModal" style="display:none;">
+  <div class="modal" style="max-width:540px;">
+    <button class="modal-close" onclick="closeModal('extensionModal')">✕</button>
+    <div class="modal-title">🧩 Install TubiShift Extension</div>
+    <div class="modal-sub">The Chrome extension enables auto-advance — when an episode ends on Tubi, it automatically loads the next one in your queue.</div>
+
+    <div style="margin-bottom:20px;">
+      <a href="/api/extension/download" class="download-btn">⬇ Download Extension (.zip)</a>
+    </div>
+
+    <div style="background:var(--surface2);border-radius:12px;padding:4px 16px;margin-bottom:8px;">
+      <div class="ext-step">
+        <div class="ext-step-num">1</div>
+        <div class="ext-step-body">Click the button above to download <strong>tubishift-extension.zip</strong>, then unzip it to a folder on your computer.</div>
+      </div>
+      <div class="ext-step">
+        <div class="ext-step-num">2</div>
+        <div class="ext-step-body">Open Chrome and go to <code>chrome://extensions</code>. Enable <strong>Developer mode</strong> using the toggle in the top-right corner.</div>
+      </div>
+      <div class="ext-step">
+        <div class="ext-step-num">3</div>
+        <div class="ext-step-body">Click <strong>Load unpacked</strong> and select the unzipped <strong>tubishift-extension</strong> folder.</div>
+      </div>
+      <div class="ext-step">
+        <div class="ext-step-num">4</div>
+        <div class="ext-step-body">The 📺 TubiShift icon will appear in your toolbar. Launch your channel here, then open an episode on Tubi — it'll advance automatically.</div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('extensionModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div>
+    <div class="logo">TUBI<span>SHIFT</span></div>
+    <div class="logo-tag">Custom Channel Builder</div>
+  </div>
+  <div class="header-right">
+    <div class="status-chip" onclick="openAuthModal()" title="Click to update cookies">
+      <div class="dot" id="authDot"></div>
+      <span id="authText">checking…</span>
+    </div>
+    <div class="status-chip" id="serverChip">
+      <div class="dot" id="serverDot"></div>
+      <span id="serverText">server…</span>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="openModal('extensionModal')" style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;">🧩 Get Extension</button>
+    <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);background:var(--surface2);padding:4px 10px;border-radius:20px;border:1px solid var(--border);" id="channelCount">0 shows</span>
+  </div>
+</header>
+
+<div class="main">
+  <div class="left-panel">
+    <div class="panel-header">
+      <div class="panel-title">Search Tubi Library</div>
+      <div class="search-bar">
+        <input class="search-input" id="searchInput" placeholder="e.g. Naruto, Bob's Burgers…" />
+        <button class="btn" id="searchBtn" onclick="searchTubi()">Search</button>
+      </div>
+    </div>
+    <div class="results-list" id="resultsList">
+      <div class="status-msg">🔍<br><br>Search for any TV series on Tubi.<br>Results appear here.</div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="tabs">
+      <div class="tab active" id="tab-channel" onclick="switchTab('channel')">My Channel</div>
+      <div class="tab" id="tab-player" onclick="switchTab('player')">Now Playing</div>
+    </div>
+
+    <div class="tab-content" id="view-channel">
+      <div class="channel-header">
+        <div>
+          <input class="channel-name-input" id="channelName" value="My Custom Channel" />
+          <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+            <span class="pill pill-orange" id="showCountPill">0 shows</span>
+            <span class="pill pill-green" id="epCountPill">0 episodes</span>
+          </div>
+        </div>
+        <div class="channel-actions">
+          <button class="btn btn-ghost btn-sm" onclick="clearChannel()">Clear All</button>
+          <div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;">
+            <label style="font-size:11px;color:var(--muted);white-space:nowrap;font-family:'Space Mono',monospace;">eps/show</label>
+            <input id="epsPerShowInput" type="number" min="1" max="20" value="2"
+              style="width:40px;background:transparent;border:none;color:var(--text);font-family:'Space Mono',monospace;font-size:13px;font-weight:700;text-align:center;outline:none;" />
+          </div>
+          <button class="btn btn-sm" onclick="launchChannel()">▶ Launch Channel</button>
+        </div>
+      </div>
+
+      <div id="authWarning" class="warn-box" style="display:none;">
+        <strong>⚠ Not authenticated</strong> — Tubi cookies are missing or expired.
+        <a href="#" onclick="openAuthModal();return false;" style="color:var(--accent);margin-left:6px;">Set up cookies →</a>
+      </div>
+
+      <div class="info-box">
+        <strong>How it works:</strong> Search for series → Add to channel → <strong>Launch Channel</strong> fetches all episodes and builds a randomized queue.
+      </div>
+
+      <div id="showsGrid" class="shows-grid">
+        <div class="empty-channel" style="grid-column:1/-1;">
+          <div class="empty-icon">📺</div>
+          <div class="empty-title">No shows yet</div>
+          <div style="font-size:13px;">Search and add series from the left panel.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="view-player" style="display:none;">
+      <div class="player-area">
+
+        <!-- Resumed banner (shown when restoring a saved queue) -->
+        <div id="resumedBanner" class="resumed-banner" style="display:none;">
+          <div>
+            <strong>📌 Saved queue restored</strong>
+            <span style="color:var(--muted);margin-left:8px;font-size:12px;" id="resumedPos"></span>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="rebuildQueue()">⇌ Start Fresh Queue</button>
+        </div>
+
+        <!-- Current episode card (shown after launch) -->
+        <div id="playerContainer" class="player-frame">
+          <div class="player-placeholder">
+            <div class="big-icon">📡</div>
+            <div style="font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);">Loading saved queue…</div>
+          </div>
+        </div>
+
+        <div class="now-playing-bar" id="nowPlayingBar" style="display:none;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 1.5s infinite;"></div>
+            <div class="now-playing-label">Now Playing</div>
+          </div>
+          <div class="now-playing-info">
+            <div class="now-playing-show" id="npShow">—</div>
+            <div class="now-playing-episode" id="npEpisode">—</div>
+          </div>
+          <div class="player-controls">
+            <a id="tubiLink" href="#" target="_blank" class="tubi-open-btn">▶ Watch on Tubi</a>
+            <button class="btn btn-sm" onclick="nextEpisode()">Next ›</button>
+          </div>
+        </div>
+
+        <div class="episode-queue" id="queueContainer" style="display:none;">
+          <div class="queue-header">
+            <span id="queueLabel">Queue</span>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" onclick="rebuildQueue()">⇌ Rebuild</button>
+            </div>
+          </div>
+          <div id="queueList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:5000/api";
+let channelData = {};
+let queue = [];
+let queueIndex = 0;
+let authOk = false;
+
+// ─── STATUS ───────────────────────────────────────────────────────────────────
+async function checkStatus() {
+  // Server status
+  try {
+    const r = await fetch(`${API}/channel`, { signal: AbortSignal.timeout(2000) });
+    if (r.ok) {
+      document.getElementById('serverDot').className = 'dot on';
+      document.getElementById('serverText').textContent = 'server online';
+      channelData = await r.json();
+      renderChannel();
+    } else throw new Error();
+  } catch {
+    document.getElementById('serverDot').className = 'dot off';
+    document.getElementById('serverText').textContent = 'server offline';
+  }
+
+  // Auth status
+  try {
+    const r = await fetch(`${API}/auth/status`, { signal: AbortSignal.timeout(2000) });
+    if (r.ok) {
+      const s = await r.json();
+      authOk = s.authenticated;
+      document.getElementById('authDot').className = authOk ? 'dot on' : 'dot warn';
+      document.getElementById('authText').textContent = authOk ? 'authenticated' : 'no cookies';
+      document.getElementById('authWarning').style.display = authOk ? 'none' : 'block';
+      if (!authOk) openAuthModal();
+    }
+  } catch {}
+}
+
+checkStatus();
+setInterval(checkStatus, 15000);
+initQueue();
+
+// ─── AUTH MODAL ───────────────────────────────────────────────────────────────
+function openAuthModal() { document.getElementById('authModal').style.display = 'flex'; }
+function closeAuthModal() { document.getElementById('authModal').style.display = 'none'; }
+
+async function saveCookies() {
+  const at = document.getElementById('cookieAt').value.trim();
+  if (!at) { showAuthMsg('error', 'Please paste your at cookie value.'); return; }
+  const raw = `at=${at}`;
+
+  try {
+    const r = await fetch(`${API}/auth/cookies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cookies: raw })
+    });
+    const res = await r.json();
+    if (r.ok) {
+      showAuthMsg('success', `✓ Saved ${res.count} cookies: ${res.names.join(', ')}`);
+      authOk = true;
+      document.getElementById('authDot').className = 'dot on';
+      document.getElementById('authText').textContent = 'authenticated';
+      document.getElementById('authWarning').style.display = 'none';
+      setTimeout(closeAuthModal, 1500);
+    } else {
+      showAuthMsg('error', res.error || 'Failed to save cookies.');
+    }
+  } catch {
+    showAuthMsg('error', 'Could not reach the server. Is it running?');
+  }
+}
+
+function showAuthMsg(type, text) {
+  const el = document.getElementById('authMsg');
+  el.className = type === 'error' ? 'error-msg' : 'success-msg';
+  el.textContent = text;
+  el.style.display = 'block';
+}
+
+// ─── SEARCH ───────────────────────────────────────────────────────────────────
+async function searchTubi() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q) return;
+
+  const btn = document.getElementById('searchBtn');
+  const list = document.getElementById('resultsList');
+  btn.disabled = true; btn.textContent = '...';
+  list.innerHTML = `<div class="status-msg"><div class="loading-dots"><span>•</span><span>•</span><span>•</span></div><br>Searching…</div>`;
+
+  try {
+    const r = await fetch(`${API}/search?q=${encodeURIComponent(q)}&limit=20`);
+    if (r.status === 401) {
+      list.innerHTML = `<div class="status-msg">⚠️ Not authenticated.<br><a href="#" onclick="openAuthModal();return false;" style="color:var(--accent)">Set up cookies →</a></div>`;
+      return;
+    }
+    const results = await r.json();
+    if (!results.length) { list.innerHTML = `<div class="status-msg">No series found for "<strong>${q}</strong>".</div>`; return; }
+
+    list.innerHTML = '';
+    results.forEach(item => {
+      const isAdded = !!channelData[item.id];
+      // Store item data on the element to avoid apostrophe/quote issues in onclick
+      searchResultMap[item.id] = item;
+      const el = document.createElement('div');
+      el.className = 'result-item' + (isAdded ? ' added' : '');
+      el.id = `result-${item.id}`;
+      el.innerHTML = `
+        ${item.poster_url ? `<img class="thumb" src="${item.poster_url}" onerror="this.style.display='none'">` : `<div class="thumb-placeholder">📺</div>`}
+        <div class="result-info">
+          <div class="result-title">${item.title}</div>
+          <div class="result-meta">${item.episode_count || '?'} ep · ${item.year || ''}</div>
+        </div>
+        ${isAdded ? `<span class="added-badge">✓ Added</span>` : `<button class="btn btn-ghost btn-sm" onclick="addShowById('${item.id}')">+ Add</button>`}
+      `;
+      list.appendChild(el);
+    });
+  } catch {
+    list.innerHTML = `<div class="status-msg">Search failed. Is the server running?<br><code style="font-size:11px;">python server.py</code></div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Search';
+  }
+}
+
+// ─── CHANNEL ─────────────────────────────────────────────────────────────────
+const searchResultMap = {}; // id -> item, avoids inline JSON with special chars
+
+function addShowById(id) {
+  const item = searchResultMap[id];
+  if (item) addShow(item);
+}
+
+async function addShow(item) {
+  const el = document.getElementById(`result-${item.id}`);
+  const btn = el?.querySelector('button');
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+
+  try {
+    const r = await fetch(`${API}/channel/add`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(item)
+    });
+    const res = await r.json();
+    if (res.status === 'added' || res.status === 'already_added') {
+      const ch = await fetch(`${API}/channel`);
+      channelData = await ch.json();
+      renderChannel();
+      if (el) {
+        el.classList.add('added');
+        const b = el.querySelector('button');
+        if (b) b.replaceWith(Object.assign(document.createElement('span'), {
+          className: 'added-badge', textContent: `✓ ${res.episode_count} ep`
+        }));
+      }
+    }
+  } catch {
+    if (btn) { btn.textContent = '+ Add'; btn.disabled = false; }
+  }
+}
+
+async function removeShow(id) {
+  await fetch(`${API}/channel/remove/${id}`, {method:'DELETE'});
+  const ch = await fetch(`${API}/channel`);
+  channelData = await ch.json();
+  renderChannel();
+}
+
+async function clearChannel() {
+  if (!Object.keys(channelData).length || !confirm('Clear all shows?')) return;
+  await fetch(`${API}/channel/clear`, {method:'DELETE'});
+  channelData = {};
+  renderChannel();
+}
+
+function renderChannel() {
+  const shows = Object.values(channelData);
+  const totalEps = shows.reduce((n,s) => n + (s.episode_count||0), 0);
+  document.getElementById('channelCount').textContent = `${shows.length} show${shows.length!==1?'s':''}`;
+  document.getElementById('showCountPill').textContent = `${shows.length} shows`;
+  document.getElementById('epCountPill').textContent = `${totalEps} episodes`;
+
+  const grid = document.getElementById('showsGrid');
+  if (!shows.length) {
+    grid.innerHTML = `<div class="empty-channel" style="grid-column:1/-1;"><div class="empty-icon">📺</div><div class="empty-title">No shows yet</div><div style="font-size:13px;">Search and add series from the left panel.</div></div>`;
+    return;
+  }
+  grid.innerHTML = shows.map(show => `
+    <div class="show-card">
+      ${show.poster_url ? `<img class="show-card-img" src="${show.poster_url}" onerror="this.style.display='none'">` : `<div class="show-card-img-placeholder">📺</div>`}
+      <div class="show-card-body">
+        <div class="show-card-title">${show.title}</div>
+        <div class="show-card-meta">${show.episode_count} ep</div>
+      </div>
+      <button class="show-remove" onclick="removeShow('${show.series_id}')">✕</button>
+    </div>`).join('');
+}
+
+// ─── MODAL HELPERS ────────────────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+// ─── QUEUE ────────────────────────────────────────────────────────────────────
+function epsPerShow() {
+  return parseInt(document.getElementById('epsPerShowInput').value) || 2;
+}
+
+// Shared helper — applies a loaded queue response to the UI
+function applyQueue(data, { switchToTab = false } = {}) {
+  queue = data.queue;
+  queueIndex = data.position || 0;
+  if (!queue.length) return false;
+
+  const resumedBanner = document.getElementById('resumedBanner');
+  if (data.resumed) {
+    resumedBanner.style.display = 'flex';
+    document.getElementById('resumedPos').textContent =
+      `episode ${queueIndex + 1} of ${queue.length}`;
+  } else {
+    resumedBanner.style.display = 'none';
+  }
+
+  document.getElementById('queueLabel').textContent = `Queue — ${queue.length} episodes`;
+  if (switchToTab) switchTab('player');
+  renderQueue();
+  playEpisode(queueIndex);
+  return true;
+}
+
+// On page load: silently restore saved queue into Now Playing tab (no tab switch)
+async function initQueue() {
+  try {
+    const r = await fetch(`${API}/channel/queue`);
+    if (!r.ok) return;
+    const data = await r.json();
+    if (data.queue && data.queue.length) {
+      applyQueue(data, { switchToTab: false });
+    }
+  } catch { /* server not ready yet, ignore */ }
+}
+
+// Launch Channel button: build/resume and switch to Now Playing tab
+async function launchChannel() {
+  if (!Object.keys(channelData).length) { openModal('noShowsModal'); return; }
+  switchTab('player');
+  setPlayerLoading('Loading queue…');
+
+  try {
+    const r = await fetch(`${API}/channel/queue?eps_per_show=${epsPerShow()}`);
+    const data = await r.json();
+    if (!applyQueue(data)) {
+      setPlayerEmpty('No episodes found. Add some shows first.');
+    }
+  } catch {
+    setPlayerEmpty('Failed to load. Is the server running?', true);
+  }
+}
+
+async function rebuildQueue() {
+  if (!Object.keys(channelData).length) { openModal('noShowsModal'); return; }
+  document.getElementById('resumedBanner').style.display = 'none';
+  setPlayerLoading('Building new queue…');
+  try {
+    const r = await fetch(`${API}/channel/queue?eps_per_show=${epsPerShow()}&rebuild=true`);
+    const data = await r.json();
+    if (!applyQueue(data)) { setPlayerEmpty('No episodes found.'); }
+  } catch {
+    setPlayerEmpty('Failed to rebuild queue.', true);
+  }
+}
+
+function setPlayerLoading(msg) {
+  document.getElementById('playerContainer').innerHTML =
+    `<div class="player-placeholder"><div class="loading-dots"><span>•</span><span>•</span><span>•</span></div><div style="margin-top:12px;font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);">${msg}</div></div>`;
+  document.getElementById('nowPlayingBar').style.display = 'none';
+  document.getElementById('queueContainer').style.display = 'none';
+}
+
+function setPlayerEmpty(msg, isError=false) {
+  document.getElementById('playerContainer').innerHTML =
+    `<div class="player-placeholder"><div class="big-icon">${isError?'⚠️':'😕'}</div><div style="color:${isError?'var(--red)':'var(--muted)'};font-size:13px;">${msg}</div></div>`;
+}
+
+function playEpisode(index) {
+  if (index >= queue.length) { rebuildQueue(); return; }
+  queueIndex = index;
+  const ep = queue[index];
+  const tubiUrl = ep.tubi_url || `https://tubitv.com/tv-shows/${ep.content_id}`;
+
+  const s = ep.season ? `S${ep.season}` : '';
+  const e = ep.episode ? `E${String(ep.episode).padStart(2,'0')}` : '';
+  const epLabel = (s||e) ? `${s}${e} — ` : '';
+
+  document.getElementById('npShow').textContent = ep.show_title;
+  document.getElementById('npEpisode').textContent = `${epLabel}${ep.title}`;
+  document.getElementById('tubiLink').href = tubiUrl;
+  document.getElementById('nowPlayingBar').style.display = 'flex';
+
+  document.getElementById('playerContainer').innerHTML = `
+    <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--surface2);padding:24px;border-radius:16px;">
+      <div style="text-align:center;">
+        <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">${ep.show_title}</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:${ep.description?'8px':'20px'}">${epLabel}${ep.title}</div>
+        ${ep.description ? `<div style="font-size:12px;color:var(--muted);max-width:480px;line-height:1.6;margin-bottom:20px;">${ep.description.slice(0,200)}${ep.description.length>200?'…':''}</div>` : ''}
+        <a href="${tubiUrl}" target="_blank" class="tubi-open-btn" style="font-size:15px;padding:13px 32px;">▶ Open on Tubi</a>
+      </div>
+      <div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px;margin-top:4px;">
+        <span style="width:7px;height:7px;background:var(--green);border-radius:50%;display:inline-block;animation:pulse 2s infinite;flex-shrink:0;"></span>
+        The extension will automatically advance to the next episode when this one ends
+      </div>
+    </div>`;
+
+  renderQueue();
+}
+
+function renderQueue() {
+  const list = document.getElementById('queueList');
+  const preview = queue.slice(queueIndex, queueIndex + 15);
+  list.innerHTML = preview.map((ep, i) => {
+    const dur = ep.duration_secs ? formatDur(ep.duration_secs) : '';
+    const epLabel = ep.season ? `S${ep.season}·E${ep.episode}` : '';
+    return `<div class="queue-item ${i===0?'active':''}" onclick="playEpisode(${queueIndex+i})">
+      <div class="queue-num">${i===0?'▶':queueIndex+i+1}</div>
+      <div class="queue-info">
+        <div class="queue-ep-title">${ep.title}</div>
+        <div class="queue-ep-show">${ep.show_title} ${epLabel}</div>
+      </div>
+      ${dur?`<div class="queue-ep-duration">${dur}</div>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('queueContainer').style.display = 'block';
+}
+
+function nextEpisode() { playEpisode(queueIndex + 1); }
+function formatDur(s) { const m=Math.floor(s/60),h=Math.floor(m/60); return h?`${h}h ${m%60}m`:`${m}m`; }
+
+function switchTab(name) {
+  document.getElementById('view-channel').style.display = name==='channel'?'flex':'none';
+  if(name==='channel') document.getElementById('view-channel').style.flexDirection='column';
+  document.getElementById('view-player').style.display = name==='player'?'block':'none';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.id==='tab-'+name));
+}
+
+document.getElementById('searchInput').addEventListener('keydown', e => { if(e.key==='Enter') searchTubi(); });
+</script>
+</body>
+</html>

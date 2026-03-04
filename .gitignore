@@ -1,0 +1,6 @@
+__pycache__/
+build/
+dist/
+cookies.txt
+tubishift.db
+TubiShift.spec
