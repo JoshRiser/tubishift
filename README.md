@@ -1,3 +1,6 @@
+> [!Note]
+> 90% of the code in this repo was written by AI. If you don't like that, don't download it.
+
 # TubiShift
 
 A custom TV channel builder for [Tubi](https://tubitv.com). Add shows to your personal channel, generate a randomized episode queue, and watch on Tubi with automatic episode-to-episode advancement.
