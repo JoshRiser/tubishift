@@ -6,15 +6,15 @@
 A custom TV channel builder for [Tubi](https://tubitv.com). Add shows to your personal channel, generate a randomized episode queue, and watch on Tubi with automatic episode-to-episode advancement.
 
 ```
-tubishift/               ← Python server + web UI
+tubishift/
 ├── server.py
 ├── tubi_scraper.py
 ├── tray.py
 ├── build.py
 ├── requirements.txt
-└── static/
-    └── index.html
-└── tubishift-extension/      ← Chrome extension
+├── static/
+│   └── index.html
+└── tubishift-extension/
     ├── manifest.json
     ├── content.js
     ├── background.js
@@ -29,7 +29,7 @@ tubishift/               ← Python server + web UI
 1. **Search** Tubi's library and add TV series to your channel
 2. **Launch Channel** builds a randomized queue — episodes from each show are interleaved so shows rotate (e.g. S1E3 of show A → S2E7 of show B → S3E2 of show C → ...)
 3. The **Now Playing** tab shows the current episode with a direct link to open it on Tubi
-4. The **Chrome extension** runs in the background while you watch — it automatically navigates to the next episode in your queue when the current one ends, suppressing Tubi's own autoplay so it doesn't interfere
+4. The **Chrome extension** runs in the background while you watch — it automatically navigates to the next episode in your queue when the current one ends
 5. Your queue position is saved to the database — close and reopen the app and it resumes exactly where you left off
 
 ---
@@ -187,6 +187,6 @@ SQLite with WAL mode. Three tables:
 | File | Purpose |
 |------|---------|
 | `manifest.json` | MV3 manifest — permissions for tubitv.com and localhost:5000 |
-| `content.js` | Runs at `document_idle` on Tubi video pages — watches `currentTime`, advances at the credits timestamp, suppresses Tubi's autoplay overlay via CSS |
+| `content.js` | Runs at `document_idle` on Tubi video pages — watches `currentTime` and advances to the next queued episode at the stored credits timestamp |
 | `background.js` | Service worker — proxies requests from content scripts to the local server (required because content scripts can't fetch `http://localhost` from `https` pages) |
 | `popup.html/js` | Toolbar popup showing queue status and an on/off toggle |
