@@ -44,7 +44,7 @@ tubishift/               ← Python server + web UI
 ### 1. Install Python dependencies
 
 ```bash
-cd tubishift2
+cd tubishift
 pip install -r requirements.txt
 ```
 
@@ -95,11 +95,11 @@ Cookies are saved to `cookies.txt` (in `%APPDATA%\TubiShift\` when running as `.
 The app can be packaged into a single `TubiShift.exe` that users can run without installing Python.
 
 ```bash
-cd tubishift2
+cd tubishift
 python build.py
 ```
 
-Output: `tubishift2/dist/TubiShift.exe`
+Output: `tubishift/dist/TubiShift.exe`
 
 **What the build does:**
 
