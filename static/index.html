@@ -355,7 +355,7 @@
             <div class="now-playing-episode" id="npEpisode">—</div>
           </div>
           <div class="player-controls">
-            <a id="tubiLink" href="#" target="_blank" class="tubi-open-btn">▶ Watch on Tubi</a>
+            <button id="tubiLink" onclick="openOnTubi()" class="tubi-open-btn">▶ Watch on Tubi</button>
             <button class="btn btn-sm" onclick="nextEpisode()">Next ›</button>
           </div>
         </div>
@@ -667,7 +667,6 @@ function playEpisode(index) {
 
   document.getElementById('npShow').textContent = ep.show_title;
   document.getElementById('npEpisode').textContent = `${epLabel}${ep.title}`;
-  document.getElementById('tubiLink').href = tubiUrl;
   document.getElementById('nowPlayingBar').style.display = 'flex';
 
   document.getElementById('playerContainer').innerHTML = `
@@ -676,7 +675,7 @@ function playEpisode(index) {
         <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">${ep.show_title}</div>
         <div style="font-size:18px;font-weight:700;margin-bottom:${ep.description?'8px':'20px'}">${epLabel}${ep.title}</div>
         ${ep.description ? `<div style="font-size:12px;color:var(--muted);max-width:480px;line-height:1.6;margin-bottom:20px;">${ep.description.slice(0,200)}${ep.description.length>200?'…':''}</div>` : ''}
-        <a href="${tubiUrl}" target="_blank" class="tubi-open-btn" style="font-size:15px;padding:13px 32px;">▶ Open on Tubi</a>
+        <button onclick="openOnTubi()" class="tubi-open-btn" style="font-size:15px;padding:13px 32px;border:none;cursor:pointer;">▶ Open on Tubi</button>
       </div>
       <div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px;margin-top:4px;">
         <span style="width:7px;height:7px;background:var(--green);border-radius:50%;display:inline-block;animation:pulse 2s infinite;flex-shrink:0;"></span>
@@ -707,6 +706,20 @@ function renderQueue() {
 
 function nextEpisode() { playEpisode(queueIndex + 1); }
 function formatDur(s) { const m=Math.floor(s/60),h=Math.floor(m/60); return h?`${h}h ${m%60}m`:`${m}m`; }
+
+function openOnTubi() {
+  if (!queue.length) return;
+  const ep = queue[queueIndex];
+  const tubiUrl = (ep.tubi_url || `https://tubitv.com/tv-shows/${ep.content_id}`);
+  const launchUrl = tubiUrl + (tubiUrl.includes('?') ? '&' : '?') + 'tubishift=1';
+  // Tell the server auto-advance is active before opening the tab
+  fetch(`${API}/channel/extension/active`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ active: true }),
+  }).catch(() => {});
+  window.open(launchUrl, '_blank');
+}
 
 function switchTab(name) {
   document.getElementById('view-channel').style.display = name==='channel'?'flex':'none';

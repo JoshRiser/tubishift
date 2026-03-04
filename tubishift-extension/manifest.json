@@ -7,7 +7,8 @@
   "permissions": [
     "storage",
     "tabs",
-    "scripting"
+    "scripting",
+    "webNavigation"
   ],
 
   "host_permissions": [
@@ -21,8 +22,13 @@
 
   "content_scripts": [
     {
+      "matches": ["https://tubitv.com/*"],
+      "js": ["navigate.js"],
+      "run_at": "document_idle"
+    },
+    {
       "matches": ["https://tubitv.com/tv-shows/*"],
-      "js": ["content.js"],
+      "js": ["player.js"],
       "run_at": "document_idle"
     }
   ],
