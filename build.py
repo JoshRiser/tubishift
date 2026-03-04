@@ -76,7 +76,7 @@ def main():
             print(f"\n✅ Build successful!")
             print(f"   {exe}  ({size_mb:.1f} MB)")
             print(f"\nDistribute just TubiShift.exe — users double-click to run.")
-            print(f"tubishift.db and cookies.txt will be created next to the .exe.")
+            print(f"tubishift.db and cookies.txt will be created in %APPDATA%\\TubiShift\\ on first run.")
         else:
             print("\n⚠ Build finished but .exe not found — check dist/ folder.")
     else:
