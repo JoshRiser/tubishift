@@ -16,7 +16,8 @@ tubishift/
 │   └── index.html
 └── tubishift-extension/
     ├── manifest.json
-    ├── content.js
+    ├── navigate.js
+    ├── player.js
     ├── background.js
     ├── popup.html
     └── popup.js
@@ -27,10 +28,11 @@ tubishift/
 ## How It Works
 
 1. **Search** Tubi's library and add TV series to your channel
-2. **Launch Channel** builds a randomized queue — episodes from each show are interleaved so shows rotate (e.g. S1E3 of show A → S2E7 of show B → S3E2 of show C → ...)
+2. **Launch Channel** builds a randomized episode queue — episodes from each show are interleaved so shows rotate (e.g. S1E3 of show A → S2E7 of show B → S3E2 of show C → ...)
 3. The **Now Playing** tab shows the current episode with a direct link to open it on Tubi
-4. The **Chrome extension** runs in the background while you watch — it automatically navigates to the next episode in your queue when the current one ends
-5. Your queue position is saved to the database — close and reopen the app and it resumes exactly where you left off
+4. Clicking **Open on Tubi** launches the episode in a new tab and automatically enables auto-advance for that session
+5. The **Chrome extension** advances to the next episode in your queue when the current one ends, and disables itself if you navigate away from the episode
+6. Your queue position is saved to the database — close and reopen the app and it resumes exactly where you left off
 
 ---
 
@@ -106,7 +108,7 @@ Output: `tubishift/dist/TubiShift.exe`
 - Bundles the Flask server, scraper, and all dependencies into one file via PyInstaller
 - Embeds the `static/` web UI folder as a resource
 - Embeds the `tubishift-extension/` folder so the in-app download button works
-- Produces a windowed app (no console) with a system tray icon
+- Produces a windowed app (no console) with a system tray icon with a Launch at Login option
 
 **User data when running as .exe:**
 
@@ -170,7 +172,9 @@ python tubi_scraper.py --get-cookies
 
 ### Tray app (`tray.py`)
 
-Entry point for the `.exe`. Starts Flask in a daemon thread, patches all file paths to AppData, then runs a `pystray` system tray icon with Open and Quit menu items. Falls back gracefully if `pystray` isn't available.
+Entry point for the `.exe`. Starts Flask in a daemon thread, patches all file paths to AppData, then runs a `pystray` system tray icon. Menu items: Open TubiShift, Launch at Login (checkable toggle), and Quit. Falls back gracefully if `pystray` isn't available.
+
+When registered via Launch at Login, the exe is launched with `--silent` so the browser doesn't open automatically on startup.
 
 ### Database (`tubishift.db`)
 
@@ -187,6 +191,7 @@ SQLite with WAL mode. Three tables:
 | File | Purpose |
 |------|---------|
 | `manifest.json` | MV3 manifest — permissions for tubitv.com and localhost:5000 |
-| `content.js` | Runs at `document_idle` on Tubi video pages — watches `currentTime` and advances to the next queued episode at the stored credits timestamp |
-| `background.js` | Service worker — proxies requests from content scripts to the local server (required because content scripts can't fetch `http://localhost` from `https` pages) |
-| `popup.html/js` | Toolbar popup showing queue status and an on/off toggle |
+| `navigate.js` | Runs at `document_idle` on all tubitv.com pages — detects launch from the TubiShift dashboard via `?tubishift=1`, and relays navigation events from `background.js` to `player.js` via CustomEvents |
+| `player.js` | Runs at `document_idle` on `tubitv.com/tv-shows/*` — watches `currentTime`, advances to the next queued episode at the stored credits timestamp, suppresses Tubi's autoplay overlay via CSS, and shows advance/end/re-enable banners |
+| `background.js` | Service worker — proxies API requests from content scripts to the local server, tracks the active Tubi tab, and uses `chrome.webNavigation.onHistoryStateUpdated` to detect SPA navigation and toggle auto-advance accordingly |
+| `popup.html/js` | Toolbar popup showing live queue status (polls every second) and an on/off toggle |
