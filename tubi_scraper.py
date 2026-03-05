@@ -327,6 +327,7 @@ def _build_ep(ep: dict, season_num=None) -> dict:
         "season": ep.get("season_number") or season_num,
         "episode": ep.get("episode_number"),
         "duration_secs": ep.get("duration"),
+        "credits_secs": ep.get("credit_cuepoints").get("postlude"),
         "description": ep.get("description", ""),
         "thumbnail": _extract_url(ep.get("thumbnails") or ep.get("posterarts") or ""),
         "tubi_url": f"https://tubitv.com/video/{ep['id']}",
