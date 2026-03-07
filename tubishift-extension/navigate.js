@@ -66,3 +66,12 @@ window.__tubiShiftNav = {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 
 checkLaunchParam();
+
+// ─── KEEPALIVE ────────────────────────────────────────────────────────────────
+// Service workers go inactive after ~30s of no activity. Pinging background.js
+// every 20s from the content script wakes it immediately if dormant, keeping
+// tab close and navigation tracking reliable while any Tubi tab is open.
+
+setInterval(() => {
+  chrome.runtime.sendMessage({ type: "KEEPALIVE" }).catch(() => {});
+}, 20000);

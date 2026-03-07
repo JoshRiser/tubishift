@@ -66,6 +66,11 @@ chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
+  if (msg.type === "KEEPALIVE") {
+    sendResponse({ ok: true });
+    return;
+  }
+
   if (msg.type === "LAUNCHED_FROM_APP") {
     tubiTabId = sender.tab?.id ?? null;
     currentQueueVideoId = msg.current_video_id ?? null;
